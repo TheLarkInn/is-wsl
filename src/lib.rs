@@ -1,18 +1,34 @@
-use std::fs;
+extern crate is_docker;
+extern crate sys_info;
 
-fn has_docker_env_file() -> bool {
-    fs::metadata("/.dockerenv").is_ok()
-}
-
-fn has_docker_in_cgroup() -> bool {
-    match fs::read_to_string("/proc/self/cgroup") {
-        Ok(file_contents) => file_contents.contains("docker"),
-        Err(_error) => false,
+fn proc_version_includes_microsoft() -> bool {
+    match std::fs::read_to_string("/proc/version") {
+        Ok(file_contents) => file_contents.to_lowercase().contains("microsoft"),
+        Err(_) => false,
     }
 }
 
-pub fn is_docker() -> bool {
-    let is_docker = has_docker_env_file() || has_docker_in_cgroup();
+pub fn is_wsl() -> bool {
+    if std::env::consts::OS != "linux" {
+        return false;
+    }
 
-    is_docker
+    if sys_info::os_release().is_ok()
+        && sys_info::os_release()
+            .unwrap()
+            .to_lowercase()
+            .contains("microsoft")
+    {
+        if is_docker::is_docker() {
+            return false;
+        }
+
+        return true;
+    }
+
+    return if proc_version_includes_microsoft() {
+        !is_docker::is_docker()
+    } else {
+        false
+    };
 }
