@@ -1,5 +1,8 @@
 extern crate is_docker;
+extern crate once_cell;
 extern crate sys_info;
+
+use once_cell::sync::OnceCell;
 
 fn proc_version_includes_microsoft() -> bool {
     match std::fs::read_to_string("/proc/version") {
@@ -9,26 +12,30 @@ fn proc_version_includes_microsoft() -> bool {
 }
 
 pub fn is_wsl() -> bool {
-    if std::env::consts::OS != "linux" {
-        return false;
-    }
+    static CACHED_RESULT: OnceCell<bool> = OnceCell::new();
 
-    if sys_info::os_release().is_ok()
-        && sys_info::os_release()
-            .unwrap()
-            .to_lowercase()
-            .contains("microsoft")
-    {
-        if is_docker::is_docker() {
+    *CACHED_RESULT.get_or_init(|| {
+        if std::env::consts::OS != "linux" {
             return false;
         }
 
-        return true;
-    }
+        if sys_info::os_release().is_ok()
+            && sys_info::os_release()
+                .unwrap()
+                .to_lowercase()
+                .contains("microsoft")
+        {
+            if is_docker::is_docker() {
+                return false;
+            }
 
-    return if proc_version_includes_microsoft() {
-        !is_docker::is_docker()
-    } else {
-        false
-    };
+            return true;
+        }
+
+        return if proc_version_includes_microsoft() {
+            !is_docker::is_docker()
+        } else {
+            false
+        };
+    })
 }
