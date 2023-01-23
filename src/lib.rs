@@ -32,10 +32,10 @@ pub fn is_wsl() -> bool {
             return true;
         }
 
-        return if proc_version_includes_microsoft() {
+        if proc_version_includes_microsoft() {
             !is_docker::is_docker()
         } else {
             false
-        };
+        }
     })
 }
