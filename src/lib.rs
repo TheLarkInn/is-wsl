@@ -1,11 +1,10 @@
 extern crate is_docker;
-extern crate once_cell;
 
-use once_cell::sync::OnceCell;
+use std::sync::OnceLock;
 use std::{fs::File, io::Read};
 
 pub fn is_wsl() -> bool {
-    static CACHED_RESULT: OnceCell<bool> = OnceCell::new();
+    static CACHED_RESULT: OnceLock<bool> = OnceLock::new();
 
     *CACHED_RESULT.get_or_init(|| {
         if std::env::consts::OS != "linux" {
